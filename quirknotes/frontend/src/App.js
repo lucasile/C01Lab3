@@ -9,11 +9,11 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState(undefined)
 
-  // -- Dialog props-- 
+  // -- Dialog props--
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogNote, setDialogNote] = useState(null)
 
-  
+
   // -- Database interaction functions --
   useEffect(() => {
     const getNotes = async () => {
@@ -25,7 +25,7 @@ function App() {
           } else {
               await response.json().then((data) => {
               getNoteState(data.response)
-          }) 
+          })
           }
         })
       } catch (error) {
@@ -38,15 +38,40 @@ function App() {
     getNotes()
   }, [])
 
-  const deleteNote = (entry) => {
-    // Code for DELETE here
+  const deleteNote = async (entry) => {
+    const id = entry._id;
+    try {
+      await fetch(`http://127.0.0.1:4000/deleteNote/${id}`, {
+          method: "DELETE"
+      }).then(async (response) => {
+        if (!response.ok) {
+          console.log("Server failed:", response.status);
+        } else {
+          deleteNoteState(id);
+        }
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  const deleteAllNotes = () => {
-    // Code for DELETE all notes here
+  const deleteAllNotes = async () => {
+    try {
+      await fetch(`http://127.0.0.1:4000/deleteAllNotes`, {
+        method: "DELETE"
+      }).then(async (response) => {
+        if (!response.ok) {
+          console.log("Server failed:", response.status);
+        } else {
+          deleteAllNotesState();
+        }
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  
+
   // -- Dialog functions --
   const editNote = (entry) => {
     setDialogNote(entry)
@@ -63,7 +88,7 @@ function App() {
     setDialogOpen(false)
   }
 
-  // -- State modification functions -- 
+  // -- State modification functions --
   const getNoteState = (data) => {
     setNotes(data)
   }
@@ -72,16 +97,23 @@ function App() {
     setNotes((prevNotes) => [...prevNotes, {_id, title, content}])
   }
 
-  const deleteNoteState = () => {
-    // Code for modifying state after DELETE here
+  const deleteNoteState = (id) => {
+    setNotes((prevNotes) => prevNotes.filter((note) => {
+      return note._id !== id
+    }));
   }
 
   const deleteAllNotesState = () => {
-    // Code for modifying state after DELETE all here
+    setNotes([]);
   }
 
   const patchNoteState = (_id, title, content) => {
-    // Code for modifying state after PATCH here
+    setNotes((prevNotes) => {
+      const index = prevNotes.findIndex((note => note._id = _id));
+      prevNotes[index].title = title;
+      prevNotes[index].content = content;
+      return prevNotes;
+    });
   }
 
   return (
@@ -94,14 +126,14 @@ function App() {
           <div style={AppStyle.notesSection}>
             {loading ?
             <>Loading...</>
-            : 
+            :
             notes ?
             notes.map((entry) => {
               return (
               <div key={entry._id}>
                 <Note
-                entry={entry} 
-                editNote={editNote} 
+                entry={entry}
+                editNote={editNote}
                 deleteNote={deleteNote}
                 />
               </div>
@@ -116,7 +148,7 @@ function App() {
           </div>
 
           <button onClick={postNote}>Post Note</button>
-          {notes && notes.length > 0 && 
+          {notes && notes.length > 0 &&
           <button
               onClick={deleteAllNotes}
               >
@@ -130,7 +162,7 @@ function App() {
           initialNote={dialogNote}
           closeDialog={closeDialog}
           postNote={postNoteState}
-          // patchNote={patchNoteState}
+          patchNote={patchNoteState}
           />
 
       </header>
@@ -142,7 +174,7 @@ export default App;
 
 const AppStyle = {
   dimBackground: {
-    opacity: "20%", 
+    opacity: "20%",
     pointerEvents: "none"
   },
   notesSection: {
@@ -153,7 +185,7 @@ const AppStyle = {
   notesError: {color: "red"},
   title: {
     margin: "0px"
-  }, 
+  },
   text: {
     margin: "0px"
   }
